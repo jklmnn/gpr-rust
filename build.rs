@@ -85,8 +85,16 @@ fn main()
         panic!("failed to build libgpr2");
     }
     let mut link_path = PathBuf::new();
+    let mut gpr2c_path = gpr_path.clone();
+    gpr2c_path.push("bindings/c/gpr2_c_binding.gpr");
+    if !Command::new("gprbuild")
+        .env("GPR_PROJECT_PATH", gpr_path.as_path().to_str().unwrap())
+        .args(["-j0", "-P", gpr2c_path.as_path().to_str().unwrap(), "-XGPR2_BUILD=release"])
+        .spawn().unwrap().wait().unwrap().success() {
+        panic!("failed to build libgpr2c");
+    }
     link_path.push(env::var("OUT_DIR").unwrap());
-    link_path.push("contrib/gpr/.build/release/lib-static-pic/");
+    link_path.push("contrib/gpr/bindings/c/build/release/lib/");
     println!("cargo:rustc-link-search={}", link_path.as_path().to_str().unwrap());
-    println!("cargo:rustc-link-lib=static=gpr2");
+    println!("cargo:rustc-link-lib=dylib=gpr2c");
 }
