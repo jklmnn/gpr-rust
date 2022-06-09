@@ -1,5 +1,5 @@
 use git2::{Repository, ErrorCode};
-use std::{env, path::{Path, PathBuf}};
+use std::{env, path::{Path, PathBuf}, process::Command};
 
 const GPR2_GIT: &str = "https://github.com/AdaCore/gpr.git";
 const GPR2_REV: &str = "5e78545ef5fc61dc0998ab8691982c967c349942";
@@ -8,10 +8,7 @@ const LANGKIT_REV: &str = "5d11f106290b1c7917c96d97053a975e9c41b2bc";
 
 fn checkout(url: &str, rev: &str, path: &Path)
 {
-    let path = match path.to_str() {
-        Some(p) => p,
-        None => panic!("failed to decode path"),
-    };
+    let path = path.to_str().unwrap();
     let repo = match Repository::clone(url, path) {
         Ok(repo) => repo,
         Err(e) => match e.code() {
@@ -41,8 +38,30 @@ fn main()
     gpr_path.push(env::var("OUT_DIR").unwrap());
     gpr_path.push("contrib");
     let mut langkit_path = gpr_path.clone();
+    let mut venv_path = gpr_path.clone();
     gpr_path.push("gpr");
     langkit_path.push("langkit");
-    let _gpr2_repo = checkout(GPR2_GIT, GPR2_REV, gpr_path.as_path());
-    let _langkit_repo = checkout(LANGKIT_GIT, LANGKIT_REV, langkit_path.as_path());
+    venv_path.push("venv");
+    checkout(GPR2_GIT, GPR2_REV, gpr_path.as_path());
+    checkout(LANGKIT_GIT, LANGKIT_REV, langkit_path.as_path());
+    let output = Command::new("python3").args(["-m", "virtualenv", venv_path.to_str().unwrap()])
+        .spawn().unwrap()
+        .wait_with_output().unwrap();
+    if !output.status.success() {
+        panic!("failed to create virtualenv");
+    }
+    let env_venv = venv_path.to_str().unwrap().to_owned();
+    venv_path.push("bin");
+    let mut env_path = venv_path.to_str().unwrap().to_owned();
+    env_path.push_str(":");
+    env_path.push_str(env::var("PATH").unwrap().as_str());
+    let output = Command::new("pip")
+        .env("VIRTUAL_ENV", env_venv)
+        .env("PATH", env_path)
+        .args(["install", "-e", langkit_path.to_str().unwrap()])
+        .spawn().unwrap()
+        .wait_with_output().unwrap();
+    if !output.status.success() {
+        panic!("failed to install langkit");
+    }
 }
