@@ -36,9 +36,11 @@ fn checkout(url: &str, rev: &str, path: &Path)
 
 fn main()
 {
+    println!("cargo:rerun-if-env-changed=PATH");
     let mut gpr_path = PathBuf::new();
     gpr_path.push(env::var("OUT_DIR").unwrap());
     gpr_path.push("contrib");
+    println!("cargo:rerun-if-changed={}", gpr_path.as_path().to_str().unwrap());
     let mut langkit_path = gpr_path.clone();
     let mut gprconfig_kb_path = gpr_path.clone();
     let mut venv_path = gpr_path.clone();
