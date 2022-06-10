@@ -80,16 +80,22 @@ fn main()
     if !Command::new("make")
         .env("VIRTUAL_ENV", &env_venv)
         .env("PATH", &env_path)
-        .args(["-C", gpr_path.to_str().unwrap(), gprconfig_db_path.as_str()])
+        .args(["-C", gpr_path.to_str().unwrap(), gprconfig_db_path.as_str(), "build-lib-static-pic"])
         .spawn().unwrap().wait().unwrap().success() {
         panic!("failed to build libgpr2");
     }
     let mut link_path = PathBuf::new();
     let mut gpr2c_path = gpr_path.clone();
     gpr2c_path.push("bindings/c/gpr2_c_binding.gpr");
+    let mut gpr_project_path = gpr_path.as_path().to_str().unwrap().to_owned();
+    gpr_project_path.push_str(":");
+    match env::var("GPR_PROJECT_PATH") {
+        Ok(gpp) => gpr_project_path.push_str(gpp.as_str()),
+        Err(_) => (),
+    };
     if !Command::new("gprbuild")
-        .env("GPR_PROJECT_PATH", gpr_path.as_path().to_str().unwrap())
-        .args(["-j0", "-P", gpr2c_path.as_path().to_str().unwrap(), "-XGPR2_BUILD=release"])
+        .env("GPR_PROJECT_PATH", gpr_project_path.as_str())
+        .args(["-j0", "-p", "-P", gpr2c_path.as_path().to_str().unwrap(), "-XGPR2_BUILD=release"])
         .spawn().unwrap().wait().unwrap().success() {
         panic!("failed to build libgpr2c");
     }
