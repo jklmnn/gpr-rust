@@ -1,12 +1,12 @@
+use serde::Deserialize;
+use serde_json::json;
 use std::{
-    os::raw::{c_int, c_char},
-    ffi::CString,
     collections::HashMap,
+    ffi::CString,
+    os::raw::{c_char, c_int},
     path::Path,
     ptr::null_mut,
 };
-use serde::Deserialize;
-use serde_json::json;
 
 extern "C" {
     fn gpr2cinit();
@@ -30,8 +30,8 @@ enum Result {
         subdirs: Option<String>,
         build_path: Option<String>,
         views: Vec<String>,
-        context: HashMap<String, String>
-    }
+        context: HashMap<String, String>,
+    },
 }
 
 #[derive(Deserialize)]
@@ -39,14 +39,16 @@ struct Answer {
     result: Result,
     status: i32,
     error_msg: String,
-    error_name: String
+    error_name: String,
 }
 
 impl crate::Result {
-    fn load(file: &Path) -> () {//Option<Tree> {
+    fn load(file: &Path) -> () {
+        //Option<Tree> {
         let request = json!({
             "filename": file.to_str().unwrap()
-        }).to_string();
+        })
+        .to_string();
         let mut answer: *mut c_char = null_mut();
         let request = CString::new(request).unwrap();
         let answer_string: String;
