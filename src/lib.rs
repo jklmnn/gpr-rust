@@ -1,68 +1,28 @@
-use serde::Deserialize;
-use serde_json::json;
-use std::{
-    collections::HashMap,
-    ffi::CString,
-    os::raw::{c_char, c_int},
-    path::Path,
-    ptr::null_mut,
-};
+use std::path::{Path, PathBuf};
 
-extern "C" {
-    fn gpr2cinit();
-    fn gpr2cfinal();
-    fn gpr2_request(fun: c_int, request: *const c_char, answer: *mut *mut c_char) -> c_int;
-    fn gpr2_free_answer(answer: *const c_char);
+#[macro_use]
+extern crate enum_display_derive;
+
+mod binding;
+mod error;
+
+pub struct Project {
+    basedir: PathBuf,
+    tree: binding::Tree,
 }
 
-#[derive(Deserialize)]
-#[serde(untagged)]
-enum Result {
-    Tree {
-        id: String,
-        root_view: String,
-        config_view: Option<String>,
-        runtime_view: Option<String>,
-        target: String,
-        canonical_target: String,
-        search_paths: Vec<String>,
-        src_subdirs: Option<String>,
-        subdirs: Option<String>,
-        build_path: Option<String>,
-        views: Vec<String>,
-        context: HashMap<String, String>,
-    },
-}
-
-#[derive(Deserialize)]
-struct Answer {
-    result: Result,
-    status: i32,
-    error_msg: String,
-    error_name: String,
-}
-
-impl crate::Result {
-    fn load(file: &Path) -> () {
-        //Option<Tree> {
-        let request = json!({
-            "filename": file.to_str().unwrap()
+impl Project {
+    fn load(file: &Path) -> Result<Project, error::Error> {
+        let tree = binding::Tree::load(file)?;
+        let basepath = file.canonicalize()?.parent().unwrap().to_path_buf();
+        Ok(Project {
+            basedir: basepath,
+            tree: tree,
         })
-        .to_string();
-        let mut answer: *mut c_char = null_mut();
-        let request = CString::new(request).unwrap();
-        let answer_string: String;
-        let result: c_int;
-        unsafe {
-            result = gpr2_request(1, request.as_ptr(), &mut answer);
-            answer_string = match CString::from_raw(answer).into_string() {
-                Ok(s) => s,
-                Err(e) => panic!("blubb: {}", e),
-            };
-        }
-        println!("{}: {}", result, answer_string);
-        let answer: Answer = serde_json::from_str(&answer_string).expect("invalid json");
-        //serde_json::from_str::<HashMap<&str, Tree>>(&answer_string).expect("invalid json")
+    }
+
+    fn name(&self) -> Result<String, error::Error> {
+        Ok(self.tree.get_attribute("name")?.value)
     }
 }
 
@@ -71,23 +31,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_init() {
-        unsafe {
-            gpr2cinit();
-        }
-    }
-
-    #[test]
-    fn test_load() {
-        unsafe {
-            gpr2cinit();
-        }
-        crate::Result::load(Path::new("testdata/testlib.gpr"));
-    }
-
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
+    fn test_name() {
+        binding::initialize();
+        let prj = Project::load(Path::new("testdata/testlib.gpr")).unwrap();
+        assert_eq!(prj.name().unwrap(), "testlib");
     }
 }
