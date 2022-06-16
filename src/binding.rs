@@ -17,17 +17,12 @@ extern "C" {
     fn gpr2_free_answer(answer: *const c_char);
 }
 
-struct RawResult {
-    answer: String,
-    status: i32,
-}
-
-fn raw_request(fun_id: i32, request: &str) -> std::result::Result<RawResult, error::Error> {
+fn raw_request(fun_id: i32, request: &str) -> std::result::Result<String, error::Error> {
     let mut answer: *mut c_char = null_mut();
     let request = CString::new(request).unwrap();
     unsafe {
-        let result = gpr2_request(fun_id as c_int, request.as_ptr(), &mut answer);
-        Ok(RawResult {answer: CString::from_raw(answer).into_string()?, status: result as i32})
+        let _ = gpr2_request(fun_id as c_int, request.as_ptr(), &mut answer);
+        Ok(CString::from_raw(answer).into_string()?)
     }
 }
 
@@ -79,7 +74,7 @@ pub fn initialize() {
     }
 }
 
-pub fn finalalize() {
+pub fn finalize() {
     unsafe {
         gpr2cfinal();
     }
@@ -91,20 +86,20 @@ impl Tree {
             "filename": file.to_str().unwrap()
         })
         .to_string();
-        let result = raw_request(1, &request)?;
-        let answer: Answer = serde_json::from_str(&result.answer)?;
-        match result.status {
+        let raw_answer = raw_request(1, &request)?;
+        let answer: Answer = serde_json::from_str(&raw_answer)?;
+        match answer.status {
             0 => match answer.result {
                 Result::Tree(t) => Ok(t),
                 _ => Err(error::Error::from_code(
                     error::Code::UnknownError,
                     "InvalidResponse",
-                    &result.answer,
+                    &raw_answer,
                 )),
             },
             _ => {
                 Err(
-                    error::Error::from_status(result.status, &answer.error_name, &answer.error_msg)
+                    error::Error::from_status(answer.status, &answer.error_name, &answer.error_msg)
                         .unwrap(),
                 )
             }
@@ -118,20 +113,20 @@ impl Tree {
             "name": name
         })
         .to_string();
-        let result = raw_request(8, &request)?;
-        let answer: Answer = serde_json::from_str(&result.answer)?;
-        match result.status {
+        let raw_answer = raw_request(8, &request)?;
+        let answer: Answer = serde_json::from_str(&raw_answer)?;
+        match answer.status {
             0 => match answer.result {
                 Result::Attribute(a) => Ok(a.attribute),
                 _ => Err(error::Error::from_code(
                     error::Code::UnknownError,
                     "InvalidResponse",
-                    &result.answer,
+                    &raw_answer,
                 )),
             },
             _ => {
                 Err(
-                    error::Error::from_status(result.status, &answer.error_name, &answer.error_msg)
+                    error::Error::from_status(answer.status, &answer.error_name, &answer.error_msg)
                         .unwrap(),
                 )
             }
