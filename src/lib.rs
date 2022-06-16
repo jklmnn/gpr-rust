@@ -83,6 +83,8 @@ impl Project {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::os::raw::c_int;
+    extern crate libloading as lib;
 
     macro_rules! prj {
         ($file: expr) => {
@@ -133,5 +135,20 @@ mod tests {
             Path::new("testdata").canonicalize().unwrap().join("lib")
         );
         prj.build(["-p", "-f"]);
+        let test2 = lib::Library::new(format!(
+            "{}/lib{}.so",
+            prj.library_dir().unwrap().to_str().unwrap(),
+            prj.library_name().unwrap()
+        ))
+        .unwrap();
+        unsafe {
+            let test2init: lib::Symbol<unsafe extern "C" fn()> = test2.get(b"test2init").unwrap();
+            let test2final: lib::Symbol<unsafe extern "C" fn()> = test2.get(b"test2final").unwrap();
+            let test2_add: lib::Symbol<unsafe extern "C" fn(c_int, c_int) -> c_int> =
+                test2.get(b"test2_add").unwrap();
+            test2init();
+            assert_eq!(test2_add(42, 24), 66);
+            test2final();
+        }
     }
 }
