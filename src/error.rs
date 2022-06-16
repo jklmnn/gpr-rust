@@ -1,6 +1,6 @@
-use std::fmt::Display;
-use thiserror::Error as ThisError;
 use serde_json::Error as JsonError;
+use std::{fmt::Display, path::PathBuf};
+use thiserror::Error as ThisError;
 
 #[derive(Debug, Display)]
 pub enum Code {
@@ -13,26 +13,32 @@ pub enum Code {
 #[derive(Debug, ThisError)]
 pub enum Error {
     #[error("gpr ({code}) {name}: {message}")]
-    Gpr{
+    Gpr {
         code: Code,
         name: String,
-        message: String
+        message: String,
     },
     #[error(transparent)]
     Io {
         #[from]
-        source: std::io::Error
+        source: std::io::Error,
     },
     #[error(transparent)]
     Cstring {
         #[from]
-        source: std::ffi::IntoStringError
+        source: std::ffi::IntoStringError,
     },
     #[error(transparent)]
     Json {
         #[from]
-        source: JsonError
-    }
+        source: JsonError,
+    },
+    #[error("invalid attribute {name} from {file}: {value}")]
+    InvalidAttribute {
+        file: String,
+        name: String,
+        value: String,
+    },
 }
 
 impl Error {
@@ -53,8 +59,16 @@ impl Error {
             _ => Some(Error::from_code(
                 Code::UnknownError,
                 "UnknownError",
-                "unknown error",
+                "unknown code",
             )),
+        }
+    }
+
+    pub fn invalid_attribute(file: &PathBuf, attribute: &str, value: &str) -> Error {
+        Error::InvalidAttribute {
+            file: String::from(file.to_str().unwrap()),
+            name: String::from(attribute),
+            value: String::from(value),
         }
     }
 }

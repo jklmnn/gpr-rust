@@ -33,7 +33,7 @@ enum Result {
     Attribute(AttributeWrapper),
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Tree {
     id: String,
     root_view: String,
@@ -49,14 +49,14 @@ pub struct Tree {
     context: HashMap<String, String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Attribute {
     pub value: String,
     is_default: bool,
 }
 
 #[derive(Deserialize)]
-pub struct AttributeWrapper {
+struct AttributeWrapper {
     attribute: Attribute,
 }
 
