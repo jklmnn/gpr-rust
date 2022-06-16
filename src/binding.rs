@@ -27,18 +27,7 @@ fn raw_request(fun_id: i32, request: &str) -> std::result::Result<RawResult, err
     let request = CString::new(request).unwrap();
     unsafe {
         let result = gpr2_request(fun_id as c_int, request.as_ptr(), &mut answer);
-        match CString::from_raw(answer).into_string() {
-            Ok(s) => Ok(RawResult {
-                answer: s,
-                status: result as i32,
-            }),
-            // FIXME: implement From<std::ffi::IntoStringError>
-            Err(_) => Err(error::Error::new(
-                error::Code::UnknownError,
-                "StringError",
-                "invalid answer string",
-            )),
-        }
+        Ok(RawResult {answer: CString::from_raw(answer).into_string()?, status: result as i32})
     }
 }
 
@@ -103,12 +92,11 @@ impl Tree {
         })
         .to_string();
         let result = raw_request(1, &request)?;
-        // FIXME: implement From<serde_json::Error>
-        let answer: Answer = serde_json::from_str(&result.answer).expect(&result.answer);
+        let answer: Answer = serde_json::from_str(&result.answer)?;
         match result.status {
             0 => match answer.result {
                 Result::Tree(t) => Ok(t),
-                _ => Err(error::Error::new(
+                _ => Err(error::Error::from_code(
                     error::Code::UnknownError,
                     "InvalidResponse",
                     &result.answer,
@@ -131,11 +119,11 @@ impl Tree {
         })
         .to_string();
         let result = raw_request(8, &request)?;
-        let answer: Answer = serde_json::from_str(&result.answer).expect(&result.answer);
+        let answer: Answer = serde_json::from_str(&result.answer)?;
         match result.status {
             0 => match answer.result {
                 Result::Attribute(a) => Ok(a.attribute),
-                _ => Err(error::Error::new(
+                _ => Err(error::Error::from_code(
                     error::Code::UnknownError,
                     "InvalidResponse",
                     &result.answer,
