@@ -1,4 +1,8 @@
-use std::path::{Path, PathBuf};
+use std::{
+    ffi::OsStr,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 #[macro_use]
 extern crate enum_display_derive;
@@ -59,6 +63,21 @@ impl Project {
             )),
         }
     }
+
+    pub fn build<I, S>(&self, args: I)
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        Command::new("gprbuild")
+            .arg("-P")
+            .arg(self.file.to_str().unwrap())
+            .args(args)
+            .spawn()
+            .unwrap()
+            .wait()
+            .unwrap();
+    }
 }
 
 #[cfg(test)]
@@ -100,5 +119,19 @@ mod tests {
         initialize();
         let prj = prj!("testdata/testlib.gpr");
         assert_eq!(prj.library_kind().unwrap(), LibraryKind::Static);
+    }
+
+    #[test]
+    fn test_build() {
+        initialize();
+        let prj = prj!("testdata/test2.gpr");
+        assert_eq!(prj.name().unwrap(), "test2");
+        assert_eq!(prj.library_name().unwrap(), "test2");
+        assert_eq!(prj.library_kind().unwrap(), LibraryKind::Dynamic);
+        assert_eq!(
+            prj.library_dir().unwrap(),
+            Path::new("testdata").canonicalize().unwrap().join("lib")
+        );
+        prj.build(["-p", "-f"]);
     }
 }

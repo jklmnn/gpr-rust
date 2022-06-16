@@ -14,3 +14,6 @@ Cargo.lock
 
 /target
 /Cargo.lock
+
+/testdata/obj
+/testdata/lib
