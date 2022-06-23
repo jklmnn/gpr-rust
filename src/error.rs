@@ -39,6 +39,12 @@ pub enum Error {
         name: String,
         value: String,
     },
+    #[error("invalid attribute value {value} for attribute {name} in {file}")]
+    InvalidAttributeValue {
+        file: String,
+        name: String,
+        value: String,
+    },
 }
 
 impl Error {
@@ -69,6 +75,18 @@ impl Error {
             file: String::from(file.to_str().unwrap()),
             name: String::from(attribute),
             value: String::from(value),
+        }
+    }
+
+    pub fn invalid_attribute_value(
+        file: &Path,
+        attribute: &str,
+        value: &crate::binding::AttributeValue,
+    ) -> Error {
+        Error::InvalidAttributeValue {
+            file: String::from(file.to_str().unwrap()),
+            name: String::from(attribute),
+            value: format!("{value}"),
         }
     }
 }

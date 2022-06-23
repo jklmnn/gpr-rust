@@ -24,6 +24,18 @@ pub enum LibraryKind {
     Dynamic,
 }
 
+macro_rules! single {
+    ($self: expr, $name: expr) => {
+        $self.get_single_attribute_value($name, $self.tree.get_attribute($name)?.value)
+    };
+}
+
+macro_rules! list {
+    ($self: expr, $name: expr) => {
+        $self.get_list_attribute_value($name, $self.tree.get_attribute($name)?.value)
+    };
+}
+
 impl Project {
     pub fn load(file: &Path) -> Result<Project, error::Error> {
         let tree = binding::Tree::load(file)?;
@@ -37,23 +49,51 @@ impl Project {
         self.file.as_path().parent().unwrap().to_path_buf()
     }
 
+    fn get_single_attribute_value(
+        &self,
+        name: &str,
+        attr: binding::AttributeValue,
+    ) -> Result<String, error::Error> {
+        if let binding::AttributeValue::Single(result) = attr {
+            Ok(result)
+        } else {
+            Err(error::Error::invalid_attribute_value(
+                &self.file, name, &attr,
+            ))
+        }
+    }
+
+    fn get_list_attribute_value(
+        &self,
+        name: &str,
+        attr: binding::AttributeValue,
+    ) -> Result<Vec<String>, error::Error> {
+        if let binding::AttributeValue::List(result) = attr {
+            Ok(result)
+        } else {
+            Err(error::Error::invalid_attribute_value(
+                &self.file, name, &attr,
+            ))
+        }
+    }
+
     pub fn name(&self) -> Result<String, error::Error> {
-        Ok(self.tree.get_attribute("name")?.value)
+        single!(self, "name")
     }
 
     pub fn library_name(&self) -> Result<String, error::Error> {
-        Ok(self.tree.get_attribute("library_name")?.value)
+        single!(self, "library_name")
     }
 
     pub fn library_dir(&self) -> Result<PathBuf, error::Error> {
         Ok(self
             .basepath()
             .as_path()
-            .join(self.tree.get_attribute("library_dir")?.value))
+            .join(single!(self, "library_dir")?))
     }
 
     pub fn library_kind(&self) -> Result<LibraryKind, error::Error> {
-        match self.tree.get_attribute("library_kind")?.value.as_str() {
+        match single!(self, "library_kind")?.as_str() {
             "static" | "static-pic" => Ok(LibraryKind::Static),
             "dynamic" | "relocatable" => Ok(LibraryKind::Dynamic),
             value => Err(error::Error::invalid_attribute(
@@ -62,6 +102,10 @@ impl Project {
                 value,
             )),
         }
+    }
+
+    pub fn source_dirs(&self) -> Result<Vec<String>, error::Error> {
+        list!(self, "source_dirs")
     }
 
     pub fn build<I, S>(&self, args: I)
@@ -121,6 +165,13 @@ mod tests {
         initialize();
         let prj = prj!("testdata/testlib.gpr");
         assert_eq!(prj.library_kind().unwrap(), LibraryKind::Static);
+    }
+
+    #[test]
+    fn test_source_dirs() {
+        initialize();
+        let prj = prj!("testdata/testlib.gpr");
+        assert_eq!(prj.source_dirs().unwrap(), vec!["src", "src2"]);
     }
 
     #[test]

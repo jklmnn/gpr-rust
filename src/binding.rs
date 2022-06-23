@@ -3,6 +3,7 @@ use serde_json::json;
 use std::{
     collections::HashMap,
     ffi::CString,
+    fmt,
     os::raw::{c_char, c_int},
     path::Path,
     ptr::null_mut,
@@ -61,8 +62,24 @@ pub struct Tree {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum AttributeValue {
+    Single(String),
+    List(Vec<String>),
+}
+
+impl fmt::Display for AttributeValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AttributeValue::Single(_) => write!(f, "Single"),
+            AttributeValue::List(_) => write!(f, "List"),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
 pub struct Attribute {
-    pub value: String,
+    pub value: AttributeValue,
     #[allow(dead_code)]
     is_default: bool,
 }
