@@ -14,6 +14,7 @@ extern "C" {
     fn gpr2cinit();
     fn gpr2cfinal();
     fn gpr2_request(fun: c_int, request: *const c_char, answer: *mut *mut c_char) -> c_int;
+    #[allow(dead_code)] //CString::from_raw frees the answer already
     fn gpr2_free_answer(answer: *const c_char);
 }
 
@@ -37,21 +38,32 @@ enum Result {
 pub struct Tree {
     id: String,
     root_view: String,
+    #[allow(dead_code)]
     config_view: Option<String>,
+    #[allow(dead_code)]
     runtime_view: Option<String>,
+    #[allow(dead_code)]
     target: String,
+    #[allow(dead_code)]
     canonical_target: String,
+    #[allow(dead_code)]
     search_paths: Vec<String>,
+    #[allow(dead_code)]
     src_subdirs: Option<String>,
+    #[allow(dead_code)]
     subdirs: Option<String>,
+    #[allow(dead_code)]
     build_path: Option<String>,
+    #[allow(dead_code)]
     views: Vec<String>,
+    #[allow(dead_code)]
     context: HashMap<String, String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct Attribute {
     pub value: String,
+    #[allow(dead_code)]
     is_default: bool,
 }
 
