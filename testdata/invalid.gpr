@@ -1,0 +1,5 @@
+project Invalid is
+
+   for Runtime ("Ada") use ("light");
+
+end Invalid;

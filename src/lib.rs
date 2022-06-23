@@ -202,4 +202,10 @@ mod tests {
             test2final();
         }
     }
+
+    #[test]
+    fn test_invalid_project() {
+        initialize();
+        assert!(Project::load(Path::new("testdata/invalid.gpr")).is_err());
+    }
 }

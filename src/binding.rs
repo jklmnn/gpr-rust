@@ -28,7 +28,7 @@ fn raw_request(fun_id: i32, request: &str) -> std::result::Result<String, error:
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(untagged)]
 enum Result {
     Tree(Box<Tree>),
@@ -84,14 +84,24 @@ pub struct Attribute {
     is_default: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 struct AttributeWrapper {
     attribute: Attribute,
 }
 
+#[derive(Debug, Deserialize)]
+struct EmptyResult {}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum ResultWrapper {
+    Valid(Result),
+    Empty(EmptyResult),
+}
+
 #[derive(Deserialize)]
 struct Answer {
-    result: Result,
+    result: ResultWrapper,
     status: i32,
     error_msg: String,
     error_name: String,
@@ -117,21 +127,20 @@ impl Tree {
         .to_string();
         let raw_answer = raw_request(1, &request)?;
         let answer: Answer = serde_json::from_str(&raw_answer)?;
-        match answer.status {
-            0 => match answer.result {
+        if let ResultWrapper::Valid(result) = answer.result {
+            match result {
                 Result::Tree(t) => Ok(*t),
                 _ => Err(error::Error::from_code(
                     error::Code::UnknownError,
                     "InvalidResponse",
                     &raw_answer,
                 )),
-            },
-            _ => {
-                Err(
-                    error::Error::from_status(answer.status, &answer.error_name, &answer.error_msg)
-                        .unwrap(),
-                )
             }
+        } else {
+            Err(
+                error::Error::from_status(answer.status, &answer.error_name, &answer.error_msg)
+                    .unwrap(),
+            )
         }
     }
 
@@ -144,21 +153,20 @@ impl Tree {
         .to_string();
         let raw_answer = raw_request(8, &request)?;
         let answer: Answer = serde_json::from_str(&raw_answer)?;
-        match answer.status {
-            0 => match answer.result {
+        if let ResultWrapper::Valid(result) = answer.result {
+            match result {
                 Result::Attribute(a) => Ok(a.attribute),
                 _ => Err(error::Error::from_code(
                     error::Code::UnknownError,
                     "InvalidResponse",
                     &raw_answer,
                 )),
-            },
-            _ => {
-                Err(
-                    error::Error::from_status(answer.status, &answer.error_name, &answer.error_msg)
-                        .unwrap(),
-                )
             }
+        } else {
+            Err(
+                error::Error::from_status(answer.status, &answer.error_name, &answer.error_msg)
+                    .unwrap(),
+            )
         }
     }
 }
