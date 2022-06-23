@@ -23,5 +23,5 @@ jobs:
       - name: Tests
         run: |
           cargo fmt -- --check
-          # cargo clippy -- -Dwarnings
+          cargo clippy -- -Dwarnings
           cargo test

@@ -30,7 +30,7 @@ fn raw_request(fun_id: i32, request: &str) -> std::result::Result<String, error:
 #[derive(Deserialize)]
 #[serde(untagged)]
 enum Result {
-    Tree(Tree),
+    Tree(Box<Tree>),
     Attribute(AttributeWrapper),
 }
 
@@ -102,7 +102,7 @@ impl Tree {
         let answer: Answer = serde_json::from_str(&raw_answer)?;
         match answer.status {
             0 => match answer.result {
-                Result::Tree(t) => Ok(t),
+                Result::Tree(t) => Ok(*t),
                 _ => Err(error::Error::from_code(
                     error::Code::UnknownError,
                     "InvalidResponse",

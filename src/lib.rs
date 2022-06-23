@@ -28,8 +28,8 @@ impl Project {
     pub fn load(file: &Path) -> Result<Project, error::Error> {
         let tree = binding::Tree::load(file)?;
         Ok(Project {
-            file: file.canonicalize()?.to_path_buf(),
-            tree: tree,
+            file: file.canonicalize()?,
+            tree,
         })
     }
 
