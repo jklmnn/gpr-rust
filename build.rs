@@ -1,4 +1,4 @@
-use git2::{ErrorCode, Repository};
+use git2::{ErrorCode, Repository, ResetType};
 use std::{env, path::Path, process::Command};
 
 const GPR2_GIT: &str = "https://github.com/AdaCore/gpr.git";
@@ -28,7 +28,7 @@ fn checkout(url: &str, rev: &str, path: &Path) {
         Some(r) => repo.set_head(r.name().unwrap()),
         None => repo.set_head_detached(object.id()),
     } {
-        Ok(_) => (),
+        Ok(_) => repo.reset(&object, ResetType::Hard, None).unwrap(),
         Err(e) => panic!("failed to check out rev: {}", e),
     };
 }
