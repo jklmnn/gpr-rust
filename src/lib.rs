@@ -1,8 +1,4 @@
-use std::{
-    ffi::OsStr,
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::path::{Path, PathBuf};
 
 #[macro_use]
 extern crate enum_display_derive;
@@ -108,26 +104,24 @@ impl Project {
         list!(self, "source_dirs")
     }
 
-    pub fn build<I, S>(&self, args: I)
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<OsStr>,
-    {
-        Command::new("gprbuild")
-            .arg("-P")
-            .arg(self.file.to_str().unwrap())
-            .args(args)
-            .spawn()
-            .unwrap()
-            .wait()
-            .unwrap();
+    pub fn gprbuild_args(&self) -> Result<Vec<String>, error::Error> {
+        Ok(vec![
+            String::from("-P"),
+            String::from(self.file.to_str().ok_or_else(|| {
+                error::Error::from_code(
+                    error::Code::UnknownError,
+                    "InvalidFile",
+                    "Failed to get path to project file",
+                )
+            })?),
+        ])
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::os::raw::c_int;
+    use std::{os::raw::c_int, process::Command};
     extern crate libloading as lib;
 
     macro_rules! prj {
@@ -185,7 +179,13 @@ mod tests {
             prj.library_dir().unwrap(),
             Path::new("testdata").canonicalize().unwrap().join("lib")
         );
-        prj.build(["-p", "-f"]);
+        Command::new("gprbuild")
+            .args(prj.gprbuild_args().unwrap())
+            .args(["-p", "-f"])
+            .spawn()
+            .unwrap()
+            .wait()
+            .unwrap();
         let test2 = lib::Library::new(format!(
             "{}/lib{}.so",
             prj.library_dir().unwrap().to_str().unwrap(),
