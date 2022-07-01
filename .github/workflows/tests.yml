@@ -25,3 +25,9 @@ jobs:
           cargo fmt -- --check
           cargo clippy -- -Dwarnings
           cargo test
+      - name: Examples
+        working-directory: examples/ada_hello
+        env:
+            LD_LIBRARY_PATH: ada_hello/lib cargo
+        run: |
+          cargo run
