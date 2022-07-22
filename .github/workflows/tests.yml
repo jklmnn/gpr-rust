@@ -27,7 +27,6 @@ jobs:
           cargo test
       - name: Examples
         working-directory: examples/ada_hello
-        env:
-            LD_LIBRARY_PATH: ada_hello/lib cargo
         run: |
+          export LD_LIBRARY_PATH=$(pwd)/ada_hello/lib
           cargo run
