@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    fmt,
+    path::{Path, PathBuf},
+};
 
 #[macro_use]
 extern crate enum_display_derive;
@@ -18,6 +21,15 @@ pub struct Project {
 pub enum LibraryKind {
     Static,
     Dynamic,
+}
+
+impl fmt::Display for LibraryKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            LibraryKind::Static => write!(f, "static"),
+            LibraryKind::Dynamic => write!(f, "dylib"),
+        }
+    }
 }
 
 macro_rules! single {
@@ -207,5 +219,11 @@ mod tests {
     fn test_invalid_project() {
         initialize();
         assert!(Project::load(Path::new("testdata/invalid.gpr")).is_err());
+    }
+
+    #[test]
+    fn test_library_kind_display() {
+        assert_eq!(format!("{}", LibraryKind::Dynamic), "dylib");
+        assert_eq!(format!("{}", LibraryKind::Static), "static");
     }
 }
