@@ -2,6 +2,12 @@
 name = "gpr"
 version = "0.1.0"
 edition = "2021"
+authors = ["Johannes Kliemann <jk@jkliemann.de"]
+description = "Libgpr binding for Rust. Provides an easy way to build Ada projects with cargo."
+readme = "README.md"
+repository = "https://github.com/jklmnn/gpr-rust"
+license = "Apache-2.0"
+keywords = ["ada", "gpr", "build"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
