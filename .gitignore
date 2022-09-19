@@ -17,3 +17,8 @@ Cargo.lock
 
 /testdata/obj
 /testdata/lib
+
+# Examples
+examples/**/lib
+examples/**/obj
+examples/**/target/
