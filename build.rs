@@ -2,11 +2,11 @@ use git2::{ErrorCode, Repository, ResetType};
 use std::{env, path::Path, process::Command};
 
 const GPR2_GIT: &str = "https://github.com/AdaCore/gpr.git";
-const GPR2_REV: &str = "5e78545ef5fc61dc0998ab8691982c967c349942";
+const GPR2_REV: &str = "814f4654598dbc98db16dc47fb0e9f5cdeea4182";
 const LANGKIT_GIT: &str = "https://github.com/AdaCore/langkit.git";
-const LANGKIT_REV: &str = "5d11f106290b1c7917c96d97053a975e9c41b2bc";
+const LANGKIT_REV: &str = "a638facb03edb4baefdf8f1819db4ca56f191a5b";
 const GPRCONFIG_KB_GIT: &str = "https://github.com/AdaCore/gprconfig_kb.git";
-const GPRCONFIG_KB_REV: &str = "11abcaaac3d2c3429be2a88d359e8c1a78283e15";
+const GPRCONFIG_KB_REV: &str = "923c46ba4f0831d21dee4cd3d1179055e121de6c";
 
 fn checkout(url: &str, rev: &str, path: &Path) {
     let path = path.to_str().unwrap();
@@ -92,9 +92,15 @@ fn main() {
     }
     let mut gprconfig_db_path = String::from("GPR2KBDIR=");
     gprconfig_db_path.push_str(gprconfig_kb_path.join("db").as_path().to_str().unwrap());
+    let mut gpr_project_path = langkit_path.join("support").to_str().unwrap().to_owned();
+    gpr_project_path.push(':');
+    if let Ok(gpp) = env::var("GPR_PROJECT_PATH") {
+        gpr_project_path.push_str(gpp.as_str())
+    }
     if !Command::new("make")
         .env("VIRTUAL_ENV", &venv_path)
         .env("PATH", &env_path)
+        .env("GPR_PROJECT_PATH", gpr_project_path.as_str())
         .args([
             "-C",
             gpr_path.to_str().unwrap(),
