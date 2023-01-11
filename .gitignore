@@ -22,3 +22,7 @@ Cargo.lock
 examples/**/lib
 examples/**/obj
 examples/**/target/
+/obj/
+/lib/
+/alire/
+/config/

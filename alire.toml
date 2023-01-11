@@ -1,0 +1,9 @@
+name = "gpr_rust"
+description = "Dependencies for the gpr-rust Rust crate."
+version = "0.1.0-dev"
+
+authors = ["Johannes Kliemann"]
+maintainers = ["Johannes Kliemann <jk@jkliemann.de>"]
+maintainers-logins = ["jklmnn"]
+[[depends-on]]
+libgpr2 = "^23.0.0"
