@@ -1,16 +1,34 @@
 use gpr::Project;
-use std::{path::Path, process::Command};
+use std::{
+    path::Path,
+    process::{Command, Stdio},
+};
 
 fn main() {
     let ada_hello = Project::load(Path::new("ada_hello/ada_hello.gpr")).unwrap();
-    Command::new("gprbuild")
+    let output = Command::new("gprbuild")
         .args(ada_hello.gprbuild_args().unwrap())
-        .spawn()
-        .unwrap()
-        .wait()
+        .stderr(Stdio::inherit())
+        .output()
         .unwrap();
+
+    if output.status.success() {
+        println!("We have a library from Ada.");
+    } else {
+        println!("output : {:?}", output);
+        panic!();
+    }
+
     println!(
         "cargo:rustc-link-search={}",
+        ada_hello.library_dir().unwrap().to_str().unwrap()
+    );
+    println!(
+        "cargo:rerun-if-changed={}",
+        ada_hello.source_dirs().unwrap()[0].as_str()
+    );
+    println!(
+        "cargo:rerun-if-changed={}",
         ada_hello.library_dir().unwrap().to_str().unwrap()
     );
     println!(
