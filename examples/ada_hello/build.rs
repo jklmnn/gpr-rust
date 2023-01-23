@@ -12,10 +12,7 @@ fn main() {
         .output()
         .unwrap();
 
-    if output.status.success() {
-        println!("We have a library from Ada.");
-    } else {
-        println!("output : {:?}", output);
+    if !output.status.success() {
         panic!();
     }
 
