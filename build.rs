@@ -15,21 +15,21 @@ fn checkout(url: &str, rev: &str, path: &Path) {
         Err(e) => match e.code() {
             ErrorCode::Exists => match Repository::open(path) {
                 Ok(repo) => repo,
-                Err(e) => panic!("failed to open repository: {}", e),
+                Err(e) => panic!("failed to open repository: {e}"),
             },
-            _ => panic!("failed to clone repository: {}", e),
+            _ => panic!("failed to clone repository: {e}"),
         },
     };
     let (object, reference) = match repo.revparse_ext(rev) {
         Ok(or) => or,
-        Err(e) => panic!("failed to find rev: {}", e),
+        Err(e) => panic!("failed to find rev: {e}"),
     };
     match match reference {
         Some(r) => repo.set_head(r.name().unwrap()),
         None => repo.set_head_detached(object.id()),
     } {
         Ok(_) => repo.reset(&object, ResetType::Hard, None).unwrap(),
-        Err(e) => panic!("failed to check out rev: {}", e),
+        Err(e) => panic!("failed to check out rev: {e}"),
     };
 }
 
