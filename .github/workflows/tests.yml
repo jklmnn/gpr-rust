@@ -14,19 +14,20 @@ jobs:
         with:
           toolchain: stable
       - name: Install Ada toolchain
-        uses: ada-actions/toolchain@ce2021
-        with:
-          distrib: community
+        uses: alire-project/setup-alire@v1
       - name: Install python dependencies
         run: |
           python -m pip install --upgrade pip wheel virtualenv
       - name: Tests
         run: |
+          alr update
+          eval $(alr printenv --unix)
           cargo fmt -- --check
           cargo clippy -- -Dwarnings
           cargo test
       - name: Examples
         working-directory: examples/ada_hello
         run: |
+          eval $(alr printenv --unix)
           export LD_LIBRARY_PATH=$(pwd)/ada_hello/lib
           cargo run
