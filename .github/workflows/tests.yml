@@ -24,7 +24,7 @@ jobs:
           eval $(alr printenv --unix)
           cargo fmt -- --check
           cargo clippy -- -Dwarnings
-          cargo test
+          cargo test -- --test-threads=1
       - name: Examples
         working-directory: examples/ada_hello
         run: |
