@@ -7,6 +7,7 @@ use std::{
     os::raw::{c_char, c_int},
     path::Path,
     ptr::null_mut,
+    sync::Mutex,
 };
 
 use super::error;
@@ -19,7 +20,12 @@ extern "C" {
     fn gpr2_free_answer(answer: *const c_char);
 }
 
+lazy_static! {
+    static ref GLOBAL_MUTEX: Mutex<i32> = Mutex::new(0i32);
+}
+
 fn raw_request(fun_id: i32, request: &str) -> std::result::Result<String, error::Error> {
+    let _lock = GLOBAL_MUTEX.lock().unwrap();
     let mut answer: *mut c_char = null_mut();
     let request = CString::new(request).unwrap();
     unsafe {
