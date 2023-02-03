@@ -14,7 +14,18 @@ Furthermore the following libraries are required:
 - `gnatcoll_iconv`
 - `gnatcoll_gmp`
 
-The easiest way to get these is to install the [GNAT Community Edition](https://www.adacore.com/download).
+The easiest way to get the required dependencies is [alire](https://alire.ada.dev/).
+This repository comes with an alire package that already defines the correct
+dependencies. To get an Ada environment run
+
+```shell
+$ alr update
+$ eval $(alr printenv --unix)
+```
+
+After that you can simply run `cargo test`. Note that this only adds the dependencies
+for the `gpr-rust` crate itself. Any additional Ada dependencies for software built with
+this library must be added by other means.
 
 ## Usage
 
@@ -27,12 +38,15 @@ let project = gpr::Project::load(Path::new("/path/to/project.gpr")).unwrap();
 ```
 - Building the project:
 ```rust
-Command::new("gprbuild")
+let output = Command::new("gprbuild")
     .args(project.gprbuild_args().unwrap())
-    .spawn()
-    .unwrap()
-    .wait()
+    .stderr(Stdio::inherit())
+    .output()
     .unwrap();
+
+if !output.status.success() {
+    panic!();
+}
 ```
 - Providing cargo with the required linker flags:
 ```rust
@@ -45,6 +59,15 @@ println!(
     project.library_kind().unwrap(),
     project.library_name().unwrap()
 );
+```
+- Additionally it can be helpful to tell cargo that changes in the Ada code also
+should trigger a rerun:
+```rust
+for dir in project.source_dirs().unwrap() {
+    println!(
+        "cargo:rerun-if-changed={}", dir.as_str()
+    );
+}
 ```
 
 Gpr-Rust doesn't need much configuration, most of the code needed is
