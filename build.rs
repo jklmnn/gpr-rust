@@ -1,5 +1,5 @@
 use git2::{ErrorCode, Repository, ResetType};
-use std::{env, path::Path, process::Command};
+use std::{collections::HashMap, env, path::Path, process::Command};
 
 const GPR2_GIT: &str = "https://github.com/AdaCore/gpr.git";
 const GPR2_REV: &str = "814f4654598dbc98db16dc47fb0e9f5cdeea4182";
@@ -53,8 +53,73 @@ fn main() {
         GPRCONFIG_KB_REV,
         gprconfig_kb_path.as_path(),
     );
+    let alire_path = out_dir.join("gpr_rust_alire");
+    if !alire_path.join("alire.toml").exists()
+        && !Command::new("alr")
+            .current_dir(out_dir.to_str().unwrap())
+            .args(["--no-tty", "init", "--lib", "gpr_rust_alire"])
+            .spawn()
+            .unwrap()
+            .wait()
+            .unwrap()
+            .success()
+    {
+        panic!("failed to create alire project");
+    }
+    if !Command::new("alr")
+        .current_dir(alire_path.to_str().unwrap())
+        .args(["--no-tty", "-n", "with", "libgpr2"])
+        .spawn()
+        .unwrap()
+        .wait()
+        .unwrap()
+        .success()
+    {
+        //panic!("failed to add libgpr2");
+    }
+    if !Command::new("alr")
+        .current_dir(alire_path.to_str().unwrap())
+        .args(["--no-tty", "-n", "update"])
+        .spawn()
+        .unwrap()
+        .wait()
+        .unwrap()
+        .success()
+    {
+        panic!("failed to update alire project");
+    }
+    let output = Command::new("alr")
+        .current_dir(alire_path.to_str().unwrap())
+        .args(["--no-tty", "-n", "printenv", "--unix"])
+        .output()
+        .unwrap();
+    if !output.status.success() {
+        println!("failed to get alire environment");
+    }
+    let env_output = String::from_utf8(output.stdout).unwrap();
+    let mut envs: HashMap<String, String> = env_output
+        .split('\n')
+        .filter(|l| l.starts_with("export"))
+        .map(|e| e.split_once(' ').unwrap().1)
+        .map(|e| e.split_once('='))
+        .filter(|e| e.is_some())
+        .map(|e| {
+            (
+                String::from(e.unwrap().0),
+                String::from(
+                    e.unwrap()
+                        .1
+                        .strip_prefix('"')
+                        .unwrap()
+                        .strip_suffix('"')
+                        .unwrap(),
+                ),
+            )
+        })
+        .collect();
     if !Command::new("python3")
         .args(["-m", "virtualenv", venv_path.to_str().unwrap()])
+        .envs(&envs)
         .spawn()
         .unwrap()
         .wait()
@@ -63,12 +128,15 @@ fn main() {
     {
         panic!("failed to create virtualenv");
     }
-    let mut env_path = venv_path.join("bin").to_str().unwrap().to_owned();
-    env_path.push(':');
-    env_path.push_str(env::var("PATH").unwrap().as_str());
+    envs.insert(
+        String::from("VIRTUAL_ENV"),
+        String::from(venv_path.to_str().unwrap()),
+    );
+    let env_path = venv_path.join("bin").to_str().unwrap().to_owned();
+    envs.get_mut("PATH").unwrap().insert(0, ':');
+    envs.get_mut("PATH").unwrap().insert_str(0, &env_path);
     if !Command::new("pip")
-        .env("VIRTUAL_ENV", &venv_path)
-        .env("PATH", &env_path)
+        .envs(&envs)
         .args(["install", "-e", langkit_path.to_str().unwrap()])
         .spawn()
         .unwrap()
@@ -79,8 +147,7 @@ fn main() {
         panic!("failed to install langkit");
     }
     if !Command::new("make")
-        .env("VIRTUAL_ENV", &venv_path)
-        .env("PATH", &env_path)
+        .envs(&envs)
         .args(["-C", gpr_path.join("langkit").to_str().unwrap()])
         .spawn()
         .unwrap()
@@ -95,12 +162,14 @@ fn main() {
     let mut gpr_project_path = langkit_path.join("support").to_str().unwrap().to_owned();
     gpr_project_path.push(':');
     if let Ok(gpp) = env::var("GPR_PROJECT_PATH") {
-        gpr_project_path.push_str(gpp.as_str())
+        gpr_project_path.push_str(gpp.as_str());
+        envs.get_mut("GPR_PROJECT_PATH").unwrap().push(':');
+        envs.get_mut("GPR_PROJECT_PATH")
+            .unwrap()
+            .push_str(&gpr_project_path);
     }
     if !Command::new("make")
-        .env("VIRTUAL_ENV", &venv_path)
-        .env("PATH", &env_path)
-        .env("GPR_PROJECT_PATH", gpr_project_path.as_str())
+        .envs(&envs)
         .args([
             "-C",
             gpr_path.to_str().unwrap(),
@@ -119,10 +188,14 @@ fn main() {
     let mut gpr_project_path = gpr_path.as_path().to_str().unwrap().to_owned();
     gpr_project_path.push(':');
     if let Ok(gpp) = env::var("GPR_PROJECT_PATH") {
-        gpr_project_path.push_str(gpp.as_str())
+        gpr_project_path.push_str(gpp.as_str());
+        envs.get_mut("GPR_PROJECT_PATH").unwrap().push(':');
+        envs.get_mut("GPR_PROJECT_PATH")
+            .unwrap()
+            .push_str(&gpr_project_path);
     }
     if !Command::new("gprbuild")
-        .env("GPR_PROJECT_PATH", gpr_project_path.as_str())
+        .envs(&envs)
         .args([
             "-j0",
             "-p",
