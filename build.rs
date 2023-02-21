@@ -53,9 +53,14 @@ fn main() {
         GPRCONFIG_KB_REV,
         gprconfig_kb_path.as_path(),
     );
+    let mut envs: HashMap<String, String> = env::vars()
+        .filter(|e| !e.0.ends_with("ALIRE_PREFIX"))
+        .collect();
     let alire_path = out_dir.join("gpr_rust_alire");
     if !alire_path.join("alire.toml").exists()
         && !Command::new("alr")
+            .env_clear()
+            .envs(&envs)
             .current_dir(out_dir.to_str().unwrap())
             .args(["--no-tty", "init", "--lib", "gpr_rust_alire"])
             .spawn()
@@ -67,6 +72,8 @@ fn main() {
         panic!("failed to create alire project");
     }
     if !Command::new("alr")
+        .env_clear()
+        .envs(&envs)
         .current_dir(alire_path.to_str().unwrap())
         .args(["--no-tty", "-n", "with", "libgpr2"])
         .spawn()
@@ -78,6 +85,8 @@ fn main() {
         //panic!("failed to add libgpr2");
     }
     if !Command::new("alr")
+        .env_clear()
+        .envs(&envs)
         .current_dir(alire_path.to_str().unwrap())
         .args(["--no-tty", "-n", "update"])
         .spawn()
@@ -89,6 +98,8 @@ fn main() {
         panic!("failed to update alire project");
     }
     let output = Command::new("alr")
+        .env_clear()
+        .envs(&envs)
         .current_dir(alire_path.to_str().unwrap())
         .args(["--no-tty", "-n", "printenv", "--unix"])
         .output()
@@ -97,29 +108,27 @@ fn main() {
         println!("failed to get alire environment");
     }
     let env_output = String::from_utf8(output.stdout).unwrap();
-    let mut envs: HashMap<String, String> = env_output
-        .split('\n')
-        .filter(|l| l.starts_with("export"))
-        .map(|e| e.split_once(' ').unwrap().1)
-        .map(|e| e.split_once('='))
-        .filter(|e| e.is_some())
-        .map(|e| {
-            (
-                String::from(e.unwrap().0),
-                String::from(
-                    e.unwrap()
-                        .1
-                        .strip_prefix('"')
+    for line in env_output.split('\n') {
+        if !line.starts_with("export") {
+            continue;
+        }
+        if let Some(exp) = line.split_once(' ') {
+            if let Some(e) = exp.1.split_once('=') {
+                envs.insert(
+                    e.0.to_string(),
+                    e.1.strip_prefix('"')
                         .unwrap()
                         .strip_suffix('"')
-                        .unwrap(),
-                ),
-            )
-        })
-        .collect();
+                        .unwrap()
+                        .to_string(),
+                );
+            }
+        }
+    }
     if !Command::new("python3")
-        .args(["-m", "virtualenv", venv_path.to_str().unwrap()])
+        .env_clear()
         .envs(&envs)
+        .args(["-m", "virtualenv", venv_path.to_str().unwrap()])
         .spawn()
         .unwrap()
         .wait()
@@ -136,6 +145,7 @@ fn main() {
     envs.get_mut("PATH").unwrap().insert(0, ':');
     envs.get_mut("PATH").unwrap().insert_str(0, &env_path);
     if !Command::new("pip")
+        .env_clear()
         .envs(&envs)
         .args(["install", "-e", langkit_path.to_str().unwrap()])
         .spawn()
@@ -147,6 +157,7 @@ fn main() {
         panic!("failed to install langkit");
     }
     if !Command::new("make")
+        .env_clear()
         .envs(&envs)
         .args(["-C", gpr_path.join("langkit").to_str().unwrap()])
         .spawn()
@@ -169,6 +180,7 @@ fn main() {
             .push_str(&gpr_project_path);
     }
     if !Command::new("make")
+        .env_clear()
         .envs(&envs)
         .args([
             "-C",
@@ -195,6 +207,7 @@ fn main() {
             .push_str(&gpr_project_path);
     }
     if !Command::new("gprbuild")
+        .env_clear()
         .envs(&envs)
         .args([
             "-j0",
