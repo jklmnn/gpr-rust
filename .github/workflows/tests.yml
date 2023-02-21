@@ -20,7 +20,8 @@ jobs:
           python -m pip install --upgrade pip wheel virtualenv
       - name: Tests
         run: |
-          eval $(alr printenv --unix)
+          alr -q printenv --unix
+          eval $(alr -q printenv --unix)
           cargo fmt -- --check
           cargo clippy -- -Dwarnings
           cargo test
