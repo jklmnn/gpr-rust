@@ -8,24 +8,16 @@ gprbuild and link the resulting library.
 
 ## Dependencies
 
-To build this project additionally to Rust an Ada toolchain is needed.
-Furthermore the following libraries are required:
+To build this project a working installation of [alire](https://alire.ada.dev/) is
+required. The build script will automatically download the required dependencies.
+The toolchain and dependencies used to build this crate are only available for
+the crates build process. For any Ada projects that are being built with this
+crate an appropirate toolchain needs to be provided.
 
-- `gnatcoll_iconv`
-- `gnatcoll_gmp`
+Addionally the following native C libraries are required:
 
-The easiest way to get the required dependencies is [alire](https://alire.ada.dev/).
-This repository comes with an alire package that already defines the correct
-dependencies. To get an Ada environment run
-
-```shell
-$ alr update
-$ eval $(alr printenv --unix)
-```
-
-After that you can simply run `cargo test`. Note that this only adds the dependencies
-for the `gpr-rust` crate itself. Any additional Ada dependencies for software built with
-this library must be added by other means.
+ - `libgmp-dev`
+ - `libssl-dev`
 
 ## Usage
 
