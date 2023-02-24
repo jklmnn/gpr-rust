@@ -1,6 +1,6 @@
 [package]
 name = "gpr"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["Johannes Kliemann <jk@jkliemann.de"]
 description = "Libgpr binding for Rust. Provides an easy way to build Ada projects with cargo."
