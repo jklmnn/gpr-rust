@@ -1,5 +1,5 @@
 use git2::{ErrorCode, Repository, ResetType};
-use std::{collections::HashMap, env, path::Path, process::Command};
+use std::{collections::HashMap, env, ffi::OsStr, path::Path, process::Command};
 
 const GPR2_GIT: &str = "https://github.com/AdaCore/gpr.git";
 const GPR2_REV: &str = "814f4654598dbc98db16dc47fb0e9f5cdeea4182";
@@ -33,6 +33,37 @@ fn checkout(url: &str, rev: &str, path: &Path) {
     };
 }
 
+fn call<'a, IE, IA, K, V>(
+    cmd: &str,
+    envs: IE,
+    cwd: Option<&Path>,
+    args: IA,
+    panic_on_fail: bool,
+) -> String
+where
+    IE: IntoIterator<Item = (K, V)>,
+    IA: IntoIterator<Item = &'a str>,
+    K: AsRef<OsStr>,
+    V: AsRef<OsStr>,
+{
+    let mut output = Command::new(cmd);
+    output.env_clear();
+    output.envs(envs);
+    if let Some(d) = cwd {
+        output.current_dir(d.to_str().unwrap());
+    }
+    let output = output.args(args).output().unwrap();
+    if !output.status.success() && panic_on_fail {
+        println!("{}", String::from_utf8(output.stdout).unwrap());
+        panic!(
+            "failed to run command: {} {}",
+            cmd,
+            String::from_utf8(output.stderr).unwrap()
+        );
+    }
+    String::from_utf8(output.stdout).unwrap()
+}
+
 fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
     println!("cargo:rerun-if-env-changed=PATH");
@@ -57,57 +88,36 @@ fn main() {
         .filter(|e| !e.0.ends_with("ALIRE_PREFIX"))
         .collect();
     let alire_path = out_dir.join("gpr_rust_alire");
-    if !alire_path.join("alire.toml").exists()
-        && !Command::new("alr")
-            .env_clear()
-            .envs(&envs)
-            .current_dir(out_dir.to_str().unwrap())
-            .args(["--no-tty", "init", "--lib", "gpr_rust_alire"])
-            .spawn()
-            .unwrap()
-            .wait()
-            .unwrap()
-            .success()
-    {
-        panic!("failed to create alire project");
+    if !alire_path.join("alire.toml").exists() {
+        let _ = call(
+            "alr",
+            &envs,
+            Some(out_dir),
+            ["--no-tty", "init", "--lib", "gpr_rust_alire"],
+            true,
+        );
     }
-    if !Command::new("alr")
-        .env_clear()
-        .envs(&envs)
-        .current_dir(alire_path.to_str().unwrap())
-        .args(["--no-tty", "-n", "with", "libgpr2"])
-        .spawn()
-        .unwrap()
-        .wait()
-        .unwrap()
-        .success()
-    {
-        //panic!("failed to add libgpr2");
-    }
-    if !Command::new("alr")
-        .env_clear()
-        .envs(&envs)
-        .current_dir(alire_path.to_str().unwrap())
-        .args(["--no-tty", "-n", "update"])
-        .spawn()
-        .unwrap()
-        .wait()
-        .unwrap()
-        .success()
-    {
-        panic!("failed to update alire project");
-    }
-    let output = Command::new("alr")
-        .env_clear()
-        .envs(&envs)
-        .current_dir(alire_path.to_str().unwrap())
-        .args(["--no-tty", "-n", "printenv", "--unix"])
-        .output()
-        .unwrap();
-    if !output.status.success() {
-        println!("failed to get alire environment");
-    }
-    let env_output = String::from_utf8(output.stdout).unwrap();
+    let _ = call(
+        "alr",
+        &envs,
+        Some(&alire_path),
+        ["--no-tty", "-n", "with", "libgpr2"],
+        false,
+    );
+    let _ = call(
+        "alr",
+        &envs,
+        Some(&alire_path),
+        ["--no-tty", "-n", "update"],
+        true,
+    );
+    let env_output = call(
+        "alr",
+        &envs,
+        Some(&alire_path),
+        ["--no-tty", "-n", "printenv", "--unix"],
+        true,
+    );
     for line in env_output.split('\n') {
         if !line.starts_with("export") {
             continue;
@@ -125,18 +135,13 @@ fn main() {
             }
         }
     }
-    if !Command::new("python3")
-        .env_clear()
-        .envs(&envs)
-        .args(["-m", "virtualenv", venv_path.to_str().unwrap()])
-        .spawn()
-        .unwrap()
-        .wait()
-        .unwrap()
-        .success()
-    {
-        panic!("failed to create virtualenv");
-    }
+    let _ = call(
+        "python3",
+        &envs,
+        None,
+        ["-m", "virtualenv", venv_path.to_str().unwrap()],
+        true,
+    );
     envs.insert(
         String::from("VIRTUAL_ENV"),
         String::from(venv_path.to_str().unwrap()),
@@ -144,30 +149,20 @@ fn main() {
     let env_path = venv_path.join("bin").to_str().unwrap().to_owned();
     envs.get_mut("PATH").unwrap().insert(0, ':');
     envs.get_mut("PATH").unwrap().insert_str(0, &env_path);
-    if !Command::new("pip")
-        .env_clear()
-        .envs(&envs)
-        .args(["install", "-e", langkit_path.to_str().unwrap()])
-        .spawn()
-        .unwrap()
-        .wait()
-        .unwrap()
-        .success()
-    {
-        panic!("failed to install langkit");
-    }
-    if !Command::new("make")
-        .env_clear()
-        .envs(&envs)
-        .args(["-C", gpr_path.join("langkit").to_str().unwrap()])
-        .spawn()
-        .unwrap()
-        .wait()
-        .unwrap()
-        .success()
-    {
-        panic!("failed to generate parser sources");
-    }
+    let _ = call(
+        "pip",
+        &envs,
+        None,
+        ["install", "-e", langkit_path.to_str().unwrap()],
+        true,
+    );
+    let _ = call(
+        "make",
+        &envs,
+        None,
+        ["-C", gpr_path.join("langkit").to_str().unwrap()],
+        true,
+    );
     let mut gprconfig_db_path = String::from("GPR2KBDIR=");
     gprconfig_db_path.push_str(gprconfig_kb_path.join("db").as_path().to_str().unwrap());
     let mut gpr_project_path = langkit_path.join("support").to_str().unwrap().to_owned();
@@ -179,23 +174,18 @@ fn main() {
             .unwrap()
             .push_str(&gpr_project_path);
     }
-    if !Command::new("make")
-        .env_clear()
-        .envs(&envs)
-        .args([
+    let _ = call(
+        "make",
+        &envs,
+        None,
+        [
             "-C",
             gpr_path.to_str().unwrap(),
             gprconfig_db_path.as_str(),
             "build-lib-static-pic",
-        ])
-        .spawn()
-        .unwrap()
-        .wait()
-        .unwrap()
-        .success()
-    {
-        panic!("failed to build libgpr2");
-    }
+        ],
+        true,
+    );
     let gpr2c_path = gpr_path.join("bindings").join("c");
     let mut gpr_project_path = gpr_path.as_path().to_str().unwrap().to_owned();
     gpr_project_path.push(':');
@@ -206,10 +196,11 @@ fn main() {
             .unwrap()
             .push_str(&gpr_project_path);
     }
-    if !Command::new("gprbuild")
-        .env_clear()
-        .envs(&envs)
-        .args([
+    let _ = call(
+        "gprbuild",
+        &envs,
+        None,
+        [
             "-j0",
             "-p",
             "-P",
@@ -219,15 +210,9 @@ fn main() {
                 .to_str()
                 .unwrap(),
             "-XGPR2_BUILD=release",
-        ])
-        .spawn()
-        .unwrap()
-        .wait()
-        .unwrap()
-        .success()
-    {
-        panic!("failed to build libgpr2c");
-    }
+        ],
+        true,
+    );
     println!(
         "cargo:rustc-link-search={}",
         gpr2c_path
