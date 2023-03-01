@@ -9,7 +9,7 @@ gprbuild and link the resulting library.
 ## Dependencies
 
 To build this project a working installation of [alire](https://alire.ada.dev/) is
-required. The build script will automatically download the required dependencies.
+required. You can download Alire [here](https://alire.ada.dev/). The build script will automatically download the required dependencies.
 The toolchain and dependencies used to build this crate are only available for
 the crates build process. For any Ada projects that are being built with this
 crate an appropirate toolchain needs to be provided.
