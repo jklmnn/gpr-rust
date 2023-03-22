@@ -12,7 +12,7 @@ To build this project a working installation of [alire](https://alire.ada.dev/) 
 required. You can download Alire [here](https://alire.ada.dev/). The build script will automatically download the required dependencies.
 The toolchain and dependencies used to build this crate are only available for
 the crates build process. For any Ada projects that are being built with this
-crate an appropirate toolchain needs to be provided.
+crate an appropriate toolchain needs to be provided.
 
 Addionally the following native C libraries are required:
 
