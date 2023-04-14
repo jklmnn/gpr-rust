@@ -93,7 +93,7 @@ fn main() {
             "alr",
             &envs,
             Some(out_dir),
-            ["--no-tty", "init", "--lib", "gpr_rust_alire"],
+            ["--no-tty", "-n", "init", "--lib", "gpr_rust_alire"],
             true,
         );
     }
