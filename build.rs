@@ -2,11 +2,13 @@ use git2::{ErrorCode, Repository, ResetType};
 use std::{collections::HashMap, env, ffi::OsStr, path::Path, process::Command};
 
 const GPR2_GIT: &str = "https://github.com/AdaCore/gpr.git";
-const GPR2_REV: &str = "814f4654598dbc98db16dc47fb0e9f5cdeea4182";
+const GPR2_REV: &str = "965de290e8caebb47d18b00e2c4638b4e36884ed";
 const LANGKIT_GIT: &str = "https://github.com/AdaCore/langkit.git";
-const LANGKIT_REV: &str = "a638facb03edb4baefdf8f1819db4ca56f191a5b";
+const LANGKIT_REV: &str = "694c2b902d233139f8188df17b59fcca02a06887";
 const GPRCONFIG_KB_GIT: &str = "https://github.com/AdaCore/gprconfig_kb.git";
-const GPRCONFIG_KB_REV: &str = "923c46ba4f0831d21dee4cd3d1179055e121de6c";
+const GPRCONFIG_KB_REV: &str = "b732437d7828ae83fbdc549bd5e145703e8282cd";
+const ADASAT_GIT: &str = "https://github.com/AdaCore/AdaSAT.git";
+const ADASAT_REV: &str = "f948e2271aec51f9313fa41ff3c00230a483f9e8";
 
 fn checkout(url: &str, rev: &str, path: &Path) {
     let path = path.to_str().unwrap();
@@ -76,6 +78,7 @@ fn main() {
     );
     let langkit_path = contrib.join("langkit");
     let gprconfig_kb_path = contrib.join("gprconfig_kb");
+    let adasat_path = langkit_path.join("langkit").join("adasat");
     let venv_path = contrib.join("venv");
     checkout(GPR2_GIT, GPR2_REV, gpr_path.as_path());
     checkout(LANGKIT_GIT, LANGKIT_REV, langkit_path.as_path());
@@ -84,9 +87,11 @@ fn main() {
         GPRCONFIG_KB_REV,
         gprconfig_kb_path.as_path(),
     );
+    checkout(ADASAT_GIT, ADASAT_REV, adasat_path.as_path());
     let mut envs: HashMap<String, String> = env::vars()
         .filter(|e| !e.0.ends_with("ALIRE_PREFIX"))
         .collect();
+    let _ = call("alr", &envs, None, ["index", "--update-all"], true);
     let alire_path = out_dir.join("gpr_rust_alire");
     if !alire_path.join("alire.toml").exists() {
         let _ = call(
@@ -101,14 +106,26 @@ fn main() {
         "alr",
         &envs,
         Some(&alire_path),
-        ["--no-tty", "-n", "with", "libgpr2"],
+        [
+            "--no-tty",
+            "-n",
+            "with",
+            "gnatcoll=24.0.0",
+            "gnatcoll_iconv=24.0.0",
+            "gnatcoll_gmp=24.0.0",
+            "xmlada=24.0.0",
+        ],
         false,
     );
+    //FIXME: This should be alr update however alire 2.0
+    // does not run post_fetch on alr update which breaks
+    // xmlada.
+    // alire-project/alire#1235
     let _ = call(
         "alr",
         &envs,
         Some(&alire_path),
-        ["--no-tty", "-n", "update"],
+        ["--no-tty", "-n", "build", "--", "-cargs", "-fPIC"],
         true,
     );
     let env_output = call(
@@ -166,14 +183,17 @@ fn main() {
     let mut gprconfig_db_path = String::from("GPR2KBDIR=");
     gprconfig_db_path.push_str(gprconfig_kb_path.join("db").as_path().to_str().unwrap());
     let mut gpr_project_path = langkit_path.join("support").to_str().unwrap().to_owned();
-    gpr_project_path.push(':');
     if let Ok(gpp) = env::var("GPR_PROJECT_PATH") {
+        gpr_project_path.push(':');
         gpr_project_path.push_str(gpp.as_str());
         envs.get_mut("GPR_PROJECT_PATH").unwrap().push(':');
-        envs.get_mut("GPR_PROJECT_PATH")
-            .unwrap()
-            .push_str(&gpr_project_path);
     }
+    gpr_project_path.push(':');
+    gpr_project_path.push_str(gpr_path.to_str().unwrap());
+    envs.get_mut("GPR_PROJECT_PATH").unwrap().push(':');
+    envs.get_mut("GPR_PROJECT_PATH")
+        .unwrap()
+        .push_str(&gpr_project_path);
     let _ = call(
         "make",
         &envs,
@@ -210,6 +230,8 @@ fn main() {
                 .to_str()
                 .unwrap(),
             "-XGPR2_BUILD=release",
+            "-cargs",
+            "-fPIC",
         ],
         true,
     );
