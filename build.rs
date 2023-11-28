@@ -55,15 +55,14 @@ where
         output.current_dir(d.to_str().unwrap());
     }
     let output = output.args(args).output().unwrap();
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    println!("{}", &stdout);
+    println!("{}", &stderr);
     if !output.status.success() && panic_on_fail {
-        println!("{}", String::from_utf8(output.stdout).unwrap());
-        panic!(
-            "failed to run command: {} {}",
-            cmd,
-            String::from_utf8(output.stderr).unwrap()
-        );
+        panic!("failed to run command: {} {}", cmd, &stderr,);
     }
-    String::from_utf8(output.stdout).unwrap()
+    stdout
 }
 
 fn main() {
