@@ -201,13 +201,13 @@ mod tests {
             .unwrap()
             .wait()
             .unwrap();
-        let test2 = lib::Library::new(format!(
-            "{}/lib{}.so",
-            prj.library_dir().unwrap().to_str().unwrap(),
-            prj.library_name().unwrap()
-        ))
-        .unwrap();
         unsafe {
+            let test2 = lib::Library::new(format!(
+                "{}/lib{}.so",
+                prj.library_dir().unwrap().to_str().unwrap(),
+                prj.library_name().unwrap()
+            ))
+            .unwrap();
             let test2init: lib::Symbol<unsafe extern "C" fn()> = test2.get(b"test2init").unwrap();
             let test2final: lib::Symbol<unsafe extern "C" fn()> = test2.get(b"test2final").unwrap();
             let test2_add: lib::Symbol<unsafe extern "C" fn(c_int, c_int) -> c_int> =
