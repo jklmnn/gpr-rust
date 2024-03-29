@@ -116,15 +116,11 @@ fn main() {
         ],
         false,
     );
-    //FIXME: This should be alr update however alire 2.0
-    // does not run post_fetch on alr update which breaks
-    // xmlada.
-    // alire-project/alire#1235
     let _ = call(
         "alr",
         &envs,
         Some(&alire_path),
-        ["--no-tty", "-n", "build", "--", "-cargs", "-fPIC"],
+        ["--no-tty", "-n", "update"],
         true,
     );
     let env_output = call(
