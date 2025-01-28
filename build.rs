@@ -43,24 +43,35 @@ fn call<'a, IE, IA, K, V>(
     panic_on_fail: bool,
 ) -> String
 where
-    IE: IntoIterator<Item = (K, V)>,
-    IA: IntoIterator<Item = &'a str>,
+    IE: IntoIterator<Item = (K, V)> + Clone,
+    IA: IntoIterator<Item = &'a str> + Clone,
     K: AsRef<OsStr>,
     V: AsRef<OsStr>,
 {
     let mut output = Command::new(cmd);
     output.env_clear();
-    output.envs(envs);
+    output.envs(envs.clone());
     if let Some(d) = cwd {
         output.current_dir(d.to_str().unwrap());
     }
-    let output = output.args(args).output().unwrap();
+    let output = output.args(args.clone()).output().unwrap();
     let stdout = String::from_utf8(output.stdout).unwrap();
     let stderr = String::from_utf8(output.stderr).unwrap();
+    for (k, v) in envs.into_iter() {
+        println!(
+            "{}={}",
+            k.as_ref().to_str().unwrap(),
+            v.as_ref().to_str().unwrap()
+        );
+    }
+    println!("{}", &cmd);
+    for a in args {
+        println!("{}", a);
+    }
     println!("{}", &stdout);
     println!("{}", &stderr);
     if !output.status.success() && panic_on_fail {
-        panic!("failed to run command: {} {}", cmd, &stderr,);
+        panic!("failed to run command: {}\n{}", cmd, &stderr,);
     }
     stdout
 }
