@@ -1,6 +1,10 @@
 name: Tests
 
-on: [push]
+on:
+  push:
+  schedule:
+    - cron: "0 4 * * *"
+
 
 jobs:
   build_and_test:
@@ -14,7 +18,7 @@ jobs:
         with:
           toolchain: stable
       - name: Install Ada toolchain
-        uses: alire-project/setup-alire@v2
+        uses: alire-project/setup-alire@v4
       - name: Install python dependencies
         run: |
           python -m pip install --upgrade pip wheel virtualenv
@@ -42,7 +46,7 @@ jobs:
         with:
           toolchain: nightly
       - name: Install Ada toolchain
-        uses: alire-project/setup-alire@v2
+        uses: alire-project/setup-alire@v4
         with:
           version: nightly
       - name: Install python dependencies
