@@ -6,7 +6,7 @@ authors = ["Johannes Kliemann"]
 maintainers = ["Johannes Kliemann <jk@jkliemann.de>"]
 maintainers-logins = ["jklmnn"]
 [[depends-on]]
-gnatcoll = "^24.0.0"
-gnatcoll_gmp = "^24.0.0"
-gnatcoll_iconv = "^24.0.0"
-xmlada = "^24.0.0"
+gnatcoll = "^25.0.0"
+gnatcoll_gmp = "^25.0.0"
+gnatcoll_iconv = "^25.0.0"
+xmlada = "^25.0.0"

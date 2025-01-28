@@ -1,14 +1,14 @@
 use git2::{ErrorCode, Repository, ResetType};
 use std::{collections::HashMap, env, ffi::OsStr, path::Path, process::Command};
 
-const GPR2_GIT: &str = "https://github.com/AdaCore/gpr.git";
-const GPR2_REV: &str = "965de290e8caebb47d18b00e2c4638b4e36884ed";
+const GPR2_GIT: &str = "https://github.com/jklmnn/gpr.git";
+const GPR2_REV: &str = "4e88e9734194fc1ad58f19a45c95fa4f17dd475f";
 const LANGKIT_GIT: &str = "https://github.com/AdaCore/langkit.git";
-const LANGKIT_REV: &str = "694c2b902d233139f8188df17b59fcca02a06887";
+const LANGKIT_REV: &str = "ebd3f5933623e6236a657173c926e7b59a7998e1";
 const GPRCONFIG_KB_GIT: &str = "https://github.com/AdaCore/gprconfig_kb.git";
-const GPRCONFIG_KB_REV: &str = "b732437d7828ae83fbdc549bd5e145703e8282cd";
+const GPRCONFIG_KB_REV: &str = "5a8f26e16ad42f84b4037a7c382b55e5491fbd2c";
 const ADASAT_GIT: &str = "https://github.com/AdaCore/AdaSAT.git";
-const ADASAT_REV: &str = "f948e2271aec51f9313fa41ff3c00230a483f9e8";
+const ADASAT_REV: &str = "01e9a19b61ba785878862b8bce5ae8145018ef01";
 
 fn checkout(url: &str, rev: &str, path: &Path) {
     let path = path.to_str().unwrap();
@@ -120,10 +120,11 @@ fn main() {
             "--no-tty",
             "-n",
             "with",
-            "gnatcoll=24.0.0",
-            "gnatcoll_iconv=24.0.0",
-            "gnatcoll_gmp=24.0.0",
-            "xmlada=24.0.0",
+            "gnatcoll=25.0.0",
+            "gnatcoll_iconv=25.0.0",
+            "gnatcoll_gmp=25.0.0",
+            "xmlada=25.0.0",
+            "libgpr2=25.0.0",
         ],
         false,
     );
@@ -132,6 +133,13 @@ fn main() {
         &envs,
         Some(&alire_path),
         ["--no-tty", "-n", "update"],
+        true,
+    );
+    let _ = call(
+        "alr",
+        &envs,
+        Some(&alire_path),
+        ["--no-tty", "-n", "build", "--", "-cargs", "-fPIC"],
         true,
     );
     let env_output = call(
@@ -180,10 +188,15 @@ fn main() {
         true,
     );
     let _ = call(
-        "make",
+        gpr_path.join("langkit").join("manage.py").to_str().unwrap(),
         &envs,
         None,
-        ["-C", gpr_path.join("langkit").to_str().unwrap()],
+        [
+            "generate",
+            "--build-dir=\"build\"",
+            "--disable-warning",
+            "undocumented-nodes",
+        ],
         true,
     );
     let mut gprconfig_db_path = String::from("GPR2KBDIR=");
@@ -225,7 +238,7 @@ fn main() {
     let _ = call(
         "gprbuild",
         &envs,
-        None,
+        Some(&gpr_path),
         [
             "-j0",
             "-p",
