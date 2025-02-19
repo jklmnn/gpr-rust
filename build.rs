@@ -3,12 +3,8 @@ use std::{collections::HashMap, env, ffi::OsStr, path::Path, process::Command};
 
 const GPR2_GIT: &str = "https://github.com/jklmnn/gpr.git";
 const GPR2_REV: &str = "4e88e9734194fc1ad58f19a45c95fa4f17dd475f";
-const LANGKIT_GIT: &str = "https://github.com/AdaCore/langkit.git";
-const LANGKIT_REV: &str = "ebd3f5933623e6236a657173c926e7b59a7998e1";
 const GPRCONFIG_KB_GIT: &str = "https://github.com/AdaCore/gprconfig_kb.git";
 const GPRCONFIG_KB_REV: &str = "5a8f26e16ad42f84b4037a7c382b55e5491fbd2c";
-const ADASAT_GIT: &str = "https://github.com/AdaCore/AdaSAT.git";
-const ADASAT_REV: &str = "01e9a19b61ba785878862b8bce5ae8145018ef01";
 
 fn checkout(url: &str, rev: &str, path: &Path) {
     let path = path.to_str().unwrap();
@@ -86,18 +82,13 @@ fn main() {
         "cargo:rerun-if-changed={}",
         contrib.as_path().to_str().unwrap()
     );
-    let langkit_path = contrib.join("langkit");
     let gprconfig_kb_path = contrib.join("gprconfig_kb");
-    let adasat_path = langkit_path.join("langkit").join("adasat");
-    let venv_path = contrib.join("venv");
     checkout(GPR2_GIT, GPR2_REV, gpr_path.as_path());
-    checkout(LANGKIT_GIT, LANGKIT_REV, langkit_path.as_path());
     checkout(
         GPRCONFIG_KB_GIT,
         GPRCONFIG_KB_REV,
         gprconfig_kb_path.as_path(),
     );
-    checkout(ADASAT_GIT, ADASAT_REV, adasat_path.as_path());
     let mut envs: HashMap<String, String> = env::vars()
         .filter(|e| !e.0.ends_with("ALIRE_PREFIX"))
         .collect();
@@ -166,44 +157,10 @@ fn main() {
             }
         }
     }
-    let _ = call(
-        "python3",
-        &envs,
-        None,
-        ["-m", "virtualenv", venv_path.to_str().unwrap()],
-        true,
-    );
-    envs.insert(
-        String::from("VIRTUAL_ENV"),
-        String::from(venv_path.to_str().unwrap()),
-    );
-    let env_path = venv_path.join("bin").to_str().unwrap().to_owned();
-    envs.get_mut("PATH").unwrap().insert(0, ':');
-    envs.get_mut("PATH").unwrap().insert_str(0, &env_path);
-    let _ = call(
-        "pip",
-        &envs,
-        None,
-        ["install", "-e", langkit_path.to_str().unwrap()],
-        true,
-    );
-    let _ = call(
-        gpr_path.join("langkit").join("manage.py").to_str().unwrap(),
-        &envs,
-        None,
-        [
-            "generate",
-            "--build-dir=\"build\"",
-            "--disable-warning",
-            "undocumented-nodes",
-        ],
-        true,
-    );
     let mut gprconfig_db_path = String::from("GPR2KBDIR=");
     gprconfig_db_path.push_str(gprconfig_kb_path.join("db").as_path().to_str().unwrap());
-    let mut gpr_project_path = langkit_path.join("support").to_str().unwrap().to_owned();
+    let mut gpr_project_path = String::new();
     if let Ok(gpp) = env::var("GPR_PROJECT_PATH") {
-        gpr_project_path.push(':');
         gpr_project_path.push_str(gpp.as_str());
         envs.get_mut("GPR_PROJECT_PATH").unwrap().push(':');
     }
