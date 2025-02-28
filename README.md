@@ -43,7 +43,7 @@ if !output.status.success() {
 - Providing cargo with the required linker flags:
 ```rust
 println!(
-    "cargo:rustc-link-search{}",
+    "cargo:rustc-link-search={}",
     project.library_dir().unwrap().to_str().unwrap()
 );
 println!(
