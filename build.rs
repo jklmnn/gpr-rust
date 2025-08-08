@@ -62,12 +62,12 @@ where
     }
     println!("{}", &cmd);
     for a in args {
-        println!("{}", a);
+        println!("{a}");
     }
     println!("{}", &stdout);
     println!("{}", &stderr);
     if !output.status.success() && panic_on_fail {
-        panic!("failed to run command: {}\n{}", cmd, &stderr,);
+        panic!("failed to run command: {cmd}\n{}", &stderr,);
     }
     stdout
 }
